@@ -14,6 +14,9 @@ import android.widget.Toast;
 
 import dji.sdk.base.BaseComponent;
 import dji.sdk.base.BaseProduct;
+import dji.sdk.camera.Camera;
+import dji.sdk.products.Aircraft;
+import dji.sdk.products.HandHeld;
 import dji.sdk.sdkmanager.DJISDKInitEvent;
 import dji.sdk.sdkmanager.DJISDKManager;
 import dji.common.error.DJIError;
@@ -108,9 +111,9 @@ public class DJIDemoApplication extends Application {
 
             @Override
             public void onProductChanged(BaseProduct baseProduct) {
-                Log.d("TAG", String.format("onProductChanged newProduct:%s", baseProduct));
-                notifyStatusChange();
+
             }
+
 
             @Override
             public void onComponentChange(BaseProduct.ComponentKey componentKey, BaseComponent oldComponent,
@@ -133,6 +136,7 @@ public class DJIDemoApplication extends Application {
                                 newComponent));
 
             }
+
             @Override
             public void onInitProcess(DJISDKInitEvent djisdkInitEvent, int i) {
 
@@ -142,6 +146,8 @@ public class DJIDemoApplication extends Application {
             public void onDatabaseDownloadProgress(long l, long l1) {
 
             }
+
+
         };
         //Check the permissions before registering the application for android system 6.0 above.
         int permissionCheck = ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
@@ -175,5 +181,16 @@ public class DJIDemoApplication extends Application {
             getApplicationContext().sendBroadcast(intent);
         }
     };
+
+    public static synchronized Camera getCameraInstance() {
+        if (getProductInstance() == null) return null;
+        Camera camera = null;
+        if (getProductInstance() instanceof Aircraft){
+            camera = ((Aircraft) getProductInstance()).getCamera();
+        } else if (getProductInstance() instanceof HandHeld) {
+            camera = ((HandHeld) getProductInstance()).getCamera();
+        }
+        return camera;
+    }
 
 }

@@ -577,9 +577,9 @@ public class Waypoint1Activity extends FragmentActivity implements View.OnClickL
             setUpMap();
         }
 
-        LatLng shenzhen = new LatLng(22.5362, 113.9454);
-        gMap.addMarker(new MarkerOptions().position(shenzhen).title("Marker in Shenzhen"));
-        gMap.moveCamera(CameraUpdateFactory.newLatLng(shenzhen));
+        LatLng bogota = new LatLng(4.624335, -74.063644);
+        gMap.addMarker(new MarkerOptions().position(bogota).title("Marker in Bogota"));
+        gMap.moveCamera(CameraUpdateFactory.newLatLng(bogota));
     }
 
 }
