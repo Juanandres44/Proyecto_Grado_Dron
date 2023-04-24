@@ -338,10 +338,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         showToast("Searching for a new path");
 
         // Get database instance
-        database = FirebaseDatabase.getInstance();
+        //database = FirebaseDatabase.getInstance();
 
 
-        this.retreivePathFromDatabase();
+        //this.retreivePathFromDatabase();
 
 
     }

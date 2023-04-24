@@ -2,8 +2,10 @@ package com.dji.GSDemo.GoogleMap;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
@@ -12,16 +14,24 @@ import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,17 +43,25 @@ import dji.log.DJILog;
 import dji.sdk.base.BaseComponent;
 import dji.sdk.base.BaseProduct;
 import dji.sdk.products.Aircraft;
+
 import dji.sdk.sdkmanager.DJISDKInitEvent;
 import dji.sdk.sdkmanager.DJISDKManager;
+import dji.sdk.sdkmanager.DJISDKManager.SDKManagerCallback;
 
 public class ConnectionActivity extends Activity implements View.OnClickListener {
 
     private static final String TAG = ConnectionActivity.class.getName();
 
+    //ID de camino
+    private TextView mTextID;
+
+    //Atributos defecto
+
     private TextView mTextConnectionStatus;
     private TextView mTextProduct;
     private TextView mVersionTv;
     private Button mBtnOpen;
+    private ImageView correctImg;
     private static final String[] REQUIRED_PERMISSION_LIST = new String[]{
             Manifest.permission.VIBRATE,
             Manifest.permission.INTERNET,
@@ -75,6 +93,60 @@ public class ConnectionActivity extends Activity implements View.OnClickListener
         IntentFilter filter = new IntentFilter();
         filter.addAction(DJIDemoApplication.FLAG_CONNECTION_CHANGE);
         registerReceiver(mReceiver, filter);
+
+        //Test firebase
+        // Write a message to the database
+
+        //FirebaseDatabase database = FirebaseDatabase.getInstance();
+        /*
+        DatabaseReference myRef = database.getReference("message");
+
+        myRef.setValue("Hello, World!");
+
+         */
+
+
+        //Test recuperar info firebase
+
+        //DatabaseReference ref = database.getReference("server/saving-data/fireblog/posts");
+
+        //DatabaseReference ref = database.getReference("PATH-0/PATH");
+
+        // Attach a listener to read the data at our posts reference
+        /*
+        ref.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                System.out.println("FirebaseTest:"+dataSnapshot.getValue());
+                System.out.println("FirebaseTest: Count of Path Points: "+(int)(dataSnapshot.getChildrenCount()));
+
+                for (DataSnapshot userSnapshot: dataSnapshot.getChildren()) {
+
+                    try {
+                        PathPoint path_Point = userSnapshot.getValue(PathPoint.class);
+                        System.out.println("ID "+path_Point.getID());
+                        System.out.println("Longitud "+path_Point.getXLongitude());
+                        System.out.println("Altitude "+path_Point.getYAltitude());
+                        System.out.println("Latitude "+path_Point.getZLatitude());
+                    }
+                    catch (Exception e)
+                    {
+                        showToast("Exploit 00 "+e.getMessage());
+                    }
+
+
+                }
+
+
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                System.out.println("The read failed: " + databaseError.getCode());
+            }
+        });
+        */
     }
 
     /**
@@ -159,6 +231,7 @@ public class ConnectionActivity extends Activity implements View.OnClickListener
 
                         }
 
+
                         @Override
                         public void onComponentChange(BaseProduct.ComponentKey componentKey, BaseComponent oldComponent,
                                                       BaseComponent newComponent) {
@@ -179,6 +252,7 @@ public class ConnectionActivity extends Activity implements View.OnClickListener
                                             newComponent));
 
                         }
+
                         @Override
                         public void onInitProcess(DJISDKInitEvent djisdkInitEvent, int i) {
 
@@ -188,6 +262,8 @@ public class ConnectionActivity extends Activity implements View.OnClickListener
                         public void onDatabaseDownloadProgress(long l, long l1) {
 
                         }
+
+
                     });
                 }
             });
@@ -225,15 +301,18 @@ public class ConnectionActivity extends Activity implements View.OnClickListener
     }
 
     private void initUI() {
-
         mTextConnectionStatus = (TextView) findViewById(R.id.text_connection_status);
         mTextProduct = (TextView) findViewById(R.id.text_product_info);
         mBtnOpen = (Button) findViewById(R.id.btn_open);
         mBtnOpen.setOnClickListener(this);
-        mBtnOpen.setEnabled(false);
+        //TODO
+        mBtnOpen.setEnabled(true);
+
 
         mVersionTv = (TextView) findViewById(R.id.textView2);
         mVersionTv.setText(getResources().getString(R.string.sdk_version, DJISDKManager.getInstance().getSDKVersion()));
+
+        correctImg = (ImageView) findViewById(R.id.imgViewConn);
     }
 
     protected BroadcastReceiver mReceiver = new BroadcastReceiver() {
@@ -250,6 +329,7 @@ public class ConnectionActivity extends Activity implements View.OnClickListener
         if (null != mProduct && mProduct.isConnected()) {
             Log.v(TAG, "refreshSDK: True");
             mBtnOpen.setEnabled(true);
+            correctImg.setImageResource(R.drawable.check);
 
             String str = mProduct instanceof Aircraft ? "DJIAircraft" : "DJIHandHeld";
             mTextConnectionStatus.setText("Status: " + str + " connected");
@@ -274,14 +354,40 @@ public class ConnectionActivity extends Activity implements View.OnClickListener
         switch (v.getId()) {
 
             case R.id.btn_open: {
-                int status = GooglePlayServicesUtil.isGooglePlayServicesAvailable(getApplicationContext());
-                if(status != ConnectionResult.SUCCESS) {
-                    GooglePlayServicesUtil.getErrorDialog(status, this, status);
-                    showToast("Cannot run without Google Play, please check！");
-                } else {
-                    Intent intent = new Intent(this, MainActivity.class);
-                    startActivity(intent);
-                }
+
+                ConstraintLayout idPathSettings = (ConstraintLayout)getLayoutInflater().inflate(R.layout.dialog_idpathinput, null);
+
+                new AlertDialog.Builder(this)
+                        .setTitle("")
+                        .setView(idPathSettings)
+                        .setPositiveButton("Done",new DialogInterface.OnClickListener(){
+                            public void onClick(DialogInterface dialog, int id) {
+                                //ID de texto
+                                mTextID = (TextView) ((AlertDialog) dialog).findViewById(R.id.editTxtPathID);
+
+                                Intent intent = new Intent(ConnectionActivity.this,MainActivity.class);
+
+                                //Envio de la informacion del ID
+                                int idtemp = 0;
+                                try {
+                                    //TODO
+                                    idtemp=Integer.parseInt(mTextID.getText()+"");
+                                }
+                                catch (Exception e){Log.v(TAG,e.getMessage());}
+                                intent.putExtra("ID-PATH",idtemp);
+
+                                startActivity(intent);
+                            }
+
+                        })
+                        .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.cancel();
+                            }
+
+                        })
+                        .create()
+                        .show();
                 break;
             }
             default:
