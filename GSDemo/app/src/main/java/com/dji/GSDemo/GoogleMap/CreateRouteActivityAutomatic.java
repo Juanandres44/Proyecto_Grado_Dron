@@ -8,17 +8,19 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
-import androidx.annotation.Nullable;
-import androidx.core.app.ActivityCompat;
-import androidx.fragment.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+import androidx.fragment.app.FragmentActivity;
 
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -35,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import dji.common.error.DJIError;
 import dji.common.flightcontroller.FlightControllerState;
 import dji.common.mission.waypoint.Waypoint;
 import dji.common.mission.waypoint.WaypointMission;
@@ -48,14 +51,14 @@ import dji.common.useraccount.UserAccountState;
 import dji.common.util.CommonCallbacks;
 import dji.sdk.base.BaseProduct;
 import dji.sdk.flightcontroller.FlightController;
-import dji.common.error.DJIError;
 import dji.sdk.mission.waypoint.WaypointMissionOperator;
 import dji.sdk.mission.waypoint.WaypointMissionOperatorListener;
 import dji.sdk.products.Aircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 import dji.sdk.useraccount.UserAccountManager;
+import dji.waypointv2.common.waypointv1.LocationCoordinate2D;
 
-public class CreateRouteActivity extends FragmentActivity implements View.OnClickListener, GoogleMap.OnMapClickListener, OnMapReadyCallback {
+public class CreateRouteActivityAutomatic extends FragmentActivity implements View.OnClickListener, GoogleMap.OnMapClickListener, OnMapReadyCallback {
 
     protected static final String TAG = "GSDemoActivity";
 
@@ -71,6 +74,14 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
     private Marker droneMarker = null;
 
     private float altitude = 100.0f;
+
+    private double centerLat = 100.0f;
+
+    private double centerLng = 100.0f;
+
+    private double radius = 100.0f;
+
+    private int waypointCount = 0;
     private float mSpeed = 10.0f;
 
     private List<Waypoint> waypointList = new ArrayList<>();
@@ -108,10 +119,10 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
     }
 
     private void setResultToToast(final String string){
-        CreateRouteActivity.this.runOnUiThread(new Runnable() {
+        CreateRouteActivityAutomatic.this.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(CreateRouteActivity.this, string, Toast.LENGTH_SHORT).show();
+                Toast.makeText(CreateRouteActivityAutomatic.this, string, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -278,25 +289,54 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
 
     }
 
+    private List<Waypoint> generateWaypointsForCircle(double centerLat,double centerLng, double radius, int waypointCount) {
+        List<Waypoint> waypoints = new ArrayList<>();
+        double angleIncrement = 2 * Math.PI / waypointCount;
+
+        for (int i = 0; i < waypointCount; i++) {
+            double angle = i * angleIncrement;
+            double x = centerLat + radius * Math.cos(angle);
+            double y = centerLng + radius * Math.sin(angle);
+
+            Waypoint waypoint = new Waypoint(x, y, altitude);
+            waypoints.add(waypoint);
+        }
+
+        return waypoints;
+    }
+
+    // Método para actualizar los valores de los parámetros
+
+
     @Override
-    public void onMapClick(LatLng point) {
-        if (isAdd == true){
-            markWaypoint(point);
-            Waypoint mWaypoint = new Waypoint(point.latitude, point.longitude, altitude);
-            //Add Waypoints to Waypoint arraylist;
-            if (waypointMissionBuilder != null) {
-                waypointList.add(mWaypoint);
-                waypointMissionBuilder.waypointList(waypointList).waypointCount(waypointList.size());
-            }else
-            {
-                waypointMissionBuilder = new WaypointMission.Builder();
-                waypointList.add(mWaypoint);
-                waypointMissionBuilder.waypointList(waypointList).waypointCount(waypointList.size());
+    public void onMapClick(LatLng latLng) {
+        if (isAdd) {
+            // Generar waypoints para el círculo
+            List<Waypoint> waypoints = generateWaypointsForCircle(centerLat, centerLng, radius, waypointCount);
+
+            // Limpiar la lista de waypoints anterior
+            waypointList.clear();
+
+            // Iterar sobre los waypoints generados
+            for (Waypoint waypoint : waypoints) {
+                // Marcar el waypoint en el mapa
+                markWaypoint(new LatLng(waypoint.coordinate.getLatitude(), waypoint.coordinate.getLongitude()));
+
+                // Agregar el waypoint a la lista
+                waypointList.add(waypoint);
             }
-        }else{
+
+            // Actualizar la cantidad de waypoints en el constructor de la misión
+            waypointMissionBuilder.waypointCount(waypointList.size());
+
+        } else {
             setResultToToast("Cannot Add Waypoint");
         }
     }
+
+
+
+
 
     public static boolean checkGpsCoordination(double latitude, double longitude) {
         return (latitude > -90 && latitude < 90 && longitude > -180 && longitude < 180) && (latitude != 0f && longitude != 0f);
@@ -326,7 +366,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
     }
 
     private void markWaypoint(LatLng point){
-        //Create MarkerOptions object
+        // Crear objeto MarkerOptions
         MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.position(point);
         markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
@@ -399,8 +439,12 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
     }
 
     private void showSettingDialog(){
-        LinearLayout wayPointSettings = (LinearLayout)getLayoutInflater().inflate(R.layout.dialog_waypoint2setting, null);
+        LinearLayout wayPointSettings = (LinearLayout)getLayoutInflater().inflate(R.layout.dialog_waypoint3setting, null);
 
+        final TextView centerLatEditText = (TextView) wayPointSettings.findViewById(R.id.centerLat);
+        final TextView centerLngEditText = (TextView) wayPointSettings.findViewById(R.id.centerLng);
+        final TextView radiusEditText = (TextView) wayPointSettings.findViewById(R.id.radius);
+        final TextView waypointCountSpinner = (TextView) wayPointSettings.findViewById(R.id.waypointCount);
         final TextView wpAltitude_TV = (TextView) wayPointSettings.findViewById(R.id.altitude);
         RadioGroup speed_RG = (RadioGroup) wayPointSettings.findViewById(R.id.speed);
         RadioGroup actionAfterFinished_RG = (RadioGroup) wayPointSettings.findViewById(R.id.actionAfterFinished);
@@ -464,7 +508,24 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
 
                         String altitudeString = wpAltitude_TV.getText().toString();
                         altitude = Integer.parseInt(nulltoIntegerDefalt(altitudeString));
+
+                        String latitudeString = centerLatEditText.getText().toString();
+                        centerLat = Integer.parseInt(nulltoIntegerDefalt(latitudeString));
+
+                        String longitudeString = centerLngEditText.getText().toString();
+                        centerLng = Integer.parseInt(nulltoIntegerDefalt(longitudeString));
+
+                        String radiusString = radiusEditText.getText().toString();
+                        radius = Integer.parseInt(nulltoIntegerDefalt(radiusString));
+
+                        String waypointCountString = waypointCountSpinner.getText().toString();
+                        waypointCount = Integer.parseInt(nulltoIntegerDefalt(waypointCountString));
+
                         Log.e(TAG,"altitude "+altitude);
+                        Log.e(TAG,"centerLat "+centerLat);
+                        Log.e(TAG,"centerLng "+centerLng);
+                        Log.e(TAG,"radius "+radius);
+                        Log.e(TAG,"waypointCount "+waypointCount);
                         Log.e(TAG,"speed "+mSpeed);
                         Log.e(TAG, "mFinishedAction "+mFinishedAction);
                         Log.e(TAG, "mHeadingMode "+mHeadingMode);
@@ -504,6 +565,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                     .headingMode(mHeadingMode)
                     .autoFlightSpeed(mSpeed)
                     .maxFlightSpeed(mSpeed)
+                    .waypointCount(waypointCount)
                     .flightPathMode(WaypointMissionFlightPathMode.NORMAL);
 
         }else
@@ -512,6 +574,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                     .headingMode(mHeadingMode)
                     .autoFlightSpeed(mSpeed)
                     .maxFlightSpeed(mSpeed)
+                    .waypointCount(waypointCount)
                     .flightPathMode(WaypointMissionFlightPathMode.NORMAL);
 
         }
@@ -519,7 +582,9 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
         if (waypointMissionBuilder.getWaypointList().size() > 0){
 
             for (int i=0; i< waypointMissionBuilder.getWaypointList().size(); i++){
-                waypointMissionBuilder.getWaypointList().get(i).altitude = altitude;
+                Waypoint waypoint = waypointMissionBuilder.getWaypointList().get(i);
+                waypoint.altitude = altitude;
+                waypoint.coordinate = new dji.common.model.LocationCoordinate2D(centerLat, centerLng); // Establecer las coordenadas del punto de ruta
             }
 
             setResultToToast("Set Waypoint attitude successfully");

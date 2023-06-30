@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
 import androidx.annotation.Nullable;
@@ -116,6 +117,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button locate, toggle;
     private Button start, stop;
 
+    private TextView title;
+
     private double droneLocationLat = 181, droneLocationLng = 181;
     private final Map<Integer, Marker> mMarkers = new ConcurrentHashMap<Integer, Marker>();
     private List<Polyline> polylines = new ArrayList<>();
@@ -210,6 +213,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         locate = findViewById(R.id.locate);
         start = findViewById(R.id.start);
         stop = findViewById(R.id.stop);
+        title = findViewById(R.id.menu_title);
+
 
         toggle.setOnClickListener(this);
         locate.setOnClickListener(this);
@@ -260,14 +265,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         setContentView(R.layout.activity_main);
+        SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
+        String cachedValuename = sharedPreferences.getString("NAMEUSER","");
+
+        TextView textView = findViewById(R.id.menu_title);
+
+
+        // Concatenar el nombre del usuario con la cadena "Bienvenido: "
+        String textoBienvenida = "Bienvenido: " + cachedValuename;
+
+        // Establecer el texto en el TextView
+        textView.setText(textoBienvenida);
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(DJIDemoApplication.FLAG_CONNECTION_CHANGE);
         registerReceiver(mReceiver, filter);
 
         //Retrieve ID of path
-        IDPATH = 0;
-        IDPATH = getIntent().getExtras().getInt("ID-PATH");
+        //IDPATH = 0;
+        //IDPATH = getIntent().getExtras().getInt("ID-PATH");
 
         initUI();
 
@@ -297,6 +313,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             case R.id.menu_seccion_create:
                                 createRoute();
                                 break;
+                            case R.id.menu_seccion_createauto:
+                                createRouteFigure();
+                                break;
                             case R.id.menu_opcion_info:
                                 if(!pathFromFirebase.isEmpty() && !waypointList.isEmpty()){
                                     showInfoDialog();
@@ -321,6 +340,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 break;
                             case R.id.menu_opcion_acerca:
                                 setResultToToast("GSDemo. Developed by Nelson Sánchez & Santiago Múnera.");
+                                break;
+                            case R.id.menu_opcion_cerrar:
+                                cerrarSession();
                                 break;
                         }
                         drawerLayout.closeDrawers();
@@ -828,6 +850,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         startActivityForResult(mIntent, LAUNCH_CREATE_ACTIVITY);;
     }
 
+    private void createRouteFigure(){
+        Intent mIntent = new Intent(MainActivity.this,CreateRouteActivityAutomatic.class);
+        mIntent.putExtra("ID-DRONE_LAT",droneLocationLat);
+        mIntent.putExtra("ID-DRONE_LNG",droneLocationLng);
+
+        startActivityForResult(mIntent, LAUNCH_CREATE_ACTIVITY);;
+    }
+
+    private void cerrarSession(){
+        SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("RESPONSE", "");
+        editor.putInt("IDUSER",0);
+        editor.putString("NAMEUSER","");
+        Intent mIntent = new Intent(MainActivity.this,LoginSignUpActivity.class);
+        startActivityForResult(mIntent, LAUNCH_CREATE_ACTIVITY);
+        showToast("Sesion cerrada con exito");
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode,
                                     Intent data) {
@@ -1039,8 +1080,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             //setUpMap();
         }
 
-        LatLng shenzhen = new LatLng(22.5362, 113.9454);
-        gMap.addMarker(new MarkerOptions().position(shenzhen).title("Marker in Shenzhen"));
+        LatLng shenzhen = new LatLng(4.60140465, -74.0649032880709);
+        gMap.addMarker(new MarkerOptions().position(shenzhen).title("Marker in Bogota"));
         gMap.moveCamera(CameraUpdateFactory.newLatLng(shenzhen));
     }
 

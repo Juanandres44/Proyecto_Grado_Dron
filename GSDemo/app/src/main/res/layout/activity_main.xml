@@ -54,14 +54,13 @@
             </LinearLayout>
 
 
-
             <Button
                 android:id="@+id/locate"
                 android:layout_width="60dp"
                 android:layout_height="60dp"
                 android:layout_marginEnd="8dp"
                 android:background="@drawable/locate_btn"
-                android:text="Locate"
+                android:text=""
                 app:layout_constraintBottom_toBottomOf="@+id/linearLayout3"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.974"
@@ -76,13 +75,14 @@
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
                 android:background="@drawable/trace_btn"
-                android:text="Toggle"
+                android:text=""
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.973"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/locate"
                 app:layout_constraintVertical_bias="0.802" />
+
 
 
             <LinearLayout
@@ -108,7 +108,7 @@
                     android:layout_marginEnd="20dp"
                     android:layout_weight="1"
                     android:background="@drawable/start"
-                    android:text="Start" />
+                    android:text="" />
 
                 <Button
                     android:id="@+id/stop"
@@ -117,9 +117,38 @@
                     android:layout_marginStart="20dp"
                     android:layout_weight="1"
                     android:background="@drawable/stop"
-                    android:text="Stop" />
+                    android:text="" />
+
+
 
             </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/linearLayout5"
+                android:layout_width="207dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="80dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="8dp"
+                android:orientation="horizontal"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.503"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="0.017">
+
+                <TextView
+                    android:id="@+id/menu_title"
+                    android:layout_width="207dp"
+                    android:layout_height="48dp"
+                    android:textColor="@android:color/white"
+                    />
+            </LinearLayout>
+
+
+
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -77,12 +77,38 @@
                 android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED"
                 android:resource="@xml/accessory_filter" />
         </activity>
-        <activity android:name=".MainActivity" />
-        <activity android:name=".Waypoint1Activity"
-            android:screenOrientation="portrait"></activity>
         <activity
-            android:name=".Waypoint2Activity"
-            android:screenOrientation="portrait" />
+            android:name=".MainActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/MyAppTheme" />
+        <activity
+            android:name=".CameraTasksActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/MyAppTheme" />
+        <activity
+            android:name=".CreateRouteActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/MyAppTheme" />
+        <activity
+            android:name=".CreateRouteActivityAutomatic"
+            android:screenOrientation="portrait"
+            android:theme="@style/MyAppTheme" />
+        <activity
+            android:name=".LoginSignUpActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/MyAppTheme" />
+        <activity
+            android:name=".LoginActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/MyAppTheme" />
+        <activity
+            android:name=".RegistrationActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/MyAppTheme" />
+        <activity
+            android:name=".LiveFeedActivity"
+            android:screenOrientation="reverseLandscape"
+            android:theme="@style/MyAppTheme" />
     </application>
 
 </manifest>

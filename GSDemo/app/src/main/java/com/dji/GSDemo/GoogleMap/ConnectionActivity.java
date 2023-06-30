@@ -354,7 +354,10 @@ public class ConnectionActivity extends Activity implements View.OnClickListener
         switch (v.getId()) {
 
             case R.id.btn_open: {
+                Intent intent = new Intent(ConnectionActivity.this,LoginSignUpActivity.class);
+                startActivity(intent);
 
+                /*
                 ConstraintLayout idPathSettings = (ConstraintLayout)getLayoutInflater().inflate(R.layout.dialog_idpathinput, null);
 
                 new AlertDialog.Builder(this)
@@ -365,7 +368,6 @@ public class ConnectionActivity extends Activity implements View.OnClickListener
                                 //ID de texto
                                 mTextID = (TextView) ((AlertDialog) dialog).findViewById(R.id.editTxtPathID);
 
-                                Intent intent = new Intent(ConnectionActivity.this,MainActivity.class);
 
                                 //Envio de la informacion del ID
                                 int idtemp = 0;
@@ -388,6 +390,8 @@ public class ConnectionActivity extends Activity implements View.OnClickListener
                         })
                         .create()
                         .show();
+
+                 */
                 break;
             }
             default:
