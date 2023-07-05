@@ -79,7 +79,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
 
     private double centerLng = 100.0f;
 
-    private double radius = 100.0f;
+    private int radius = 1;
 
     private int waypointCount = 0;
     private float mSpeed = 10.0f;
@@ -289,19 +289,29 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
 
     }
 
-    private List<Waypoint> generateWaypointsForCircle(double centerLat,double centerLng, double radius, int waypointCount) {
+    private List<Waypoint> generateWaypointsForCircle(double centerLat,double centerLng, int radius, int waypointCount) {
         List<Waypoint> waypoints = new ArrayList<>();
         double angleIncrement = 2 * Math.PI / waypointCount;
-
+        double earthR = 6378140;
+        System.out.println("Antes de la lista");
+        System.out.println("Latitude home " + centerLat);
+        System.out.println("Longitude home" + centerLng);
+        System.out.println("Altitude home" + altitude);
         for (int i = 0; i < waypointCount; i++) {
+            System.out.println("Waypoint " + i);
             double angle = i * angleIncrement;
-            double x = centerLat + radius * Math.cos(angle);
-            double y = centerLng + radius * Math.sin(angle);
+            double Z =  radius * Math.sin(angle);
+            double W = radius * Math.cos(angle);
 
-            Waypoint waypoint = new Waypoint(x, y, altitude);
+            double longF = centerLng + (W/earthR) * ((180/Math.PI)/Math.cos(centerLat * (Math.PI/180))) ;
+            double latF = centerLat + (Z/earthR) * (180/Math.PI);
+
+            Waypoint waypoint = new Waypoint(latF, longF, altitude);
             waypoints.add(waypoint);
+            System.out.println("Altitude way" + altitude);
+            System.out.println("End Waypoint " + i);
         }
-
+        System.out.println("Waypoints " + waypoints);
         return waypoints;
     }
 
@@ -311,27 +321,31 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
     @Override
     public void onMapClick(LatLng latLng) {
         if (isAdd) {
-            // Generar waypoints para el círculo
-            List<Waypoint> waypoints = generateWaypointsForCircle(centerLat, centerLng, radius, waypointCount);
 
-            // Limpiar la lista de waypoints anterior
-            waypointList.clear();
-
-            // Iterar sobre los waypoints generados
-            for (Waypoint waypoint : waypoints) {
-                // Marcar el waypoint en el mapa
-                markWaypoint(new LatLng(waypoint.coordinate.getLatitude(), waypoint.coordinate.getLongitude()));
-
-                // Agregar el waypoint a la lista
-                waypointList.add(waypoint);
-            }
-
-            // Actualizar la cantidad de waypoints en el constructor de la misión
-            waypointMissionBuilder.waypointCount(waypointList.size());
 
         } else {
             setResultToToast("Cannot Add Waypoint");
         }
+    }
+
+    public void autoWaypoints(){
+        // Generar waypoints para el círculo
+        List<Waypoint> waypoints = generateWaypointsForCircle(centerLat, centerLng, radius, waypointCount);
+
+        // Limpiar la lista de waypoints anterior
+        waypointList.clear();
+
+        // Iterar sobre los waypoints generados
+        for (Waypoint waypoint : waypoints) {
+            // Marcar el waypoint en el mapa
+            markWaypoint(new LatLng(waypoint.coordinate.getLatitude(), waypoint.coordinate.getLongitude()));
+
+            // Agregar el waypoint a la lista
+            waypointList.add(waypoint);
+        }
+
+        // Actualizar la cantidad de waypoints en el constructor de la misión
+        waypointMissionBuilder.waypointCount(waypointList.size());
     }
 
 
@@ -510,10 +524,10 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                         altitude = Integer.parseInt(nulltoIntegerDefalt(altitudeString));
 
                         String latitudeString = centerLatEditText.getText().toString();
-                        centerLat = Integer.parseInt(nulltoIntegerDefalt(latitudeString));
+                        centerLat = Double.parseDouble(nulltoDoubleDefalt(latitudeString));
 
                         String longitudeString = centerLngEditText.getText().toString();
-                        centerLng = Integer.parseInt(nulltoIntegerDefalt(longitudeString));
+                        centerLng = Double.parseDouble(nulltoDoubleDefalt(longitudeString));
 
                         String radiusString = radiusEditText.getText().toString();
                         radius = Integer.parseInt(nulltoIntegerDefalt(radiusString));
@@ -530,6 +544,8 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                         Log.e(TAG, "mFinishedAction "+mFinishedAction);
                         Log.e(TAG, "mHeadingMode "+mHeadingMode);
                         configWayPointMission();
+                        autoWaypoints();
+
                     }
 
                 })
@@ -548,11 +564,25 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
         return value;
     }
 
+    String nulltoDoubleDefalt(String value){
+        if(!isDoubleValue(value)) value="0";
+        return value;
+    }
+
     boolean isIntValue(String val)
     {
         try {
             val=val.replace(" ","");
             Integer.parseInt(val);
+        } catch (Exception e) {return false;}
+        return true;
+    }
+
+    boolean isDoubleValue(String val)
+    {
+        try {
+            val=val.replace(" ","");
+            Double.parseDouble(val);
         } catch (Exception e) {return false;}
         return true;
     }
