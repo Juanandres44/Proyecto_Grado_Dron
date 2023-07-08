@@ -140,6 +140,10 @@ public class RegistrationActivity extends Activity implements View.OnClickListen
                 } catch (JSONException e) {
                     throw new RuntimeException(e);
                 }
+                SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString("PASSWORD", password);
+                editor.apply();
 
                 // Call the AsyncTask to send the POST request
                 Integer i=0;

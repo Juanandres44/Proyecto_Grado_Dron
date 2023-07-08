@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -14,6 +15,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
+import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -32,7 +34,17 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -56,6 +68,7 @@ import dji.sdk.mission.waypoint.WaypointMissionOperatorListener;
 import dji.sdk.products.Aircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 import dji.sdk.useraccount.UserAccountManager;
+import dji.thirdparty.afinal.core.AsyncTask;
 import dji.waypointv2.common.waypointv1.LocationCoordinate2D;
 
 public class CreateRouteActivityAutomatic extends FragmentActivity implements View.OnClickListener, GoogleMap.OnMapClickListener, OnMapReadyCallback {
@@ -89,6 +102,8 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
     public static WaypointMission.Builder waypointMissionBuilder;
     private FlightController mFlightController;
     private WaypointMissionOperator instance;
+
+    private boolean directionC = false;
     private WaypointMissionFinishedAction mFinishedAction = WaypointMissionFinishedAction.NO_ACTION;
     private WaypointMissionHeadingMode mHeadingMode = WaypointMissionHeadingMode.AUTO;
 
@@ -312,10 +327,14 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
             System.out.println("End Waypoint " + i);
         }
         System.out.println("Waypoints " + waypoints);
+
+        if (directionC){
+            Collections.reverse(waypoints);
+        }
+
         return waypoints;
     }
 
-    // Método para actualizar los valores de los parámetros
 
 
     @Override
@@ -328,25 +347,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
         }
     }
 
-    public void autoWaypoints(){
-        // Generar waypoints para el círculo
-        List<Waypoint> waypoints = generateWaypointsForCircle(centerLat, centerLng, radius, waypointCount);
 
-        // Limpiar la lista de waypoints anterior
-        waypointList.clear();
-
-        // Iterar sobre los waypoints generados
-        for (Waypoint waypoint : waypoints) {
-            // Marcar el waypoint en el mapa
-            markWaypoint(new LatLng(waypoint.coordinate.getLatitude(), waypoint.coordinate.getLongitude()));
-
-            // Agregar el waypoint a la lista
-            waypointList.add(waypoint);
-        }
-
-        // Actualizar la cantidad de waypoints en el constructor de la misión
-        waypointMissionBuilder.waypointCount(waypointList.size());
-    }
 
 
 
@@ -453,16 +454,89 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
     }
 
     private void showSettingDialog(){
-        LinearLayout wayPointSettings = (LinearLayout)getLayoutInflater().inflate(R.layout.dialog_waypoint3setting, null);
+
+        SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+
+
+        centerLat = droneLocationLat;
+        centerLng = droneLocationLng;
+        int directionid = sharedPreferences.getInt("DIRECTIONC",0);
+        int speedid = sharedPreferences.getInt("MSPEED",0);
+        int finishid = sharedPreferences.getInt("FINISHACTION",0);
+        int headingid = sharedPreferences.getInt("HEADING",0);
+        int radioCache= sharedPreferences.getInt("RADIUS",0);
+        int waypointcountCache= sharedPreferences.getInt("WAYPOINTCOUNT",0);
+        int altitudeCache = (int) sharedPreferences.getFloat("ALTITUDE",0);
+        String latCache = sharedPreferences.getString("CENTERLAT","");
+        String lngCache = sharedPreferences.getString("CENTERLNG","");
+
+
+
+        ScrollView wayPointSettings = (ScrollView) getLayoutInflater().inflate(R.layout.dialog_waypoint3setting, null);
 
         final TextView centerLatEditText = (TextView) wayPointSettings.findViewById(R.id.centerLat);
         final TextView centerLngEditText = (TextView) wayPointSettings.findViewById(R.id.centerLng);
         final TextView radiusEditText = (TextView) wayPointSettings.findViewById(R.id.radius);
         final TextView waypointCountSpinner = (TextView) wayPointSettings.findViewById(R.id.waypointCount);
         final TextView wpAltitude_TV = (TextView) wayPointSettings.findViewById(R.id.altitude);
+        RadioGroup direction = (RadioGroup) wayPointSettings.findViewById(R.id.direction);
         RadioGroup speed_RG = (RadioGroup) wayPointSettings.findViewById(R.id.speed);
         RadioGroup actionAfterFinished_RG = (RadioGroup) wayPointSettings.findViewById(R.id.actionAfterFinished);
         RadioGroup heading_RG = (RadioGroup) wayPointSettings.findViewById(R.id.heading);
+
+        // Establecer los valores en los TextView
+        if(!latCache.equals("")){
+            centerLatEditText.setText(latCache);
+        }else {
+            centerLatEditText.setText(String.valueOf(centerLat));
+        }
+        if(!lngCache.equals("")){
+            centerLngEditText.setText(lngCache);
+        }else {
+            centerLngEditText.setText(String.valueOf(centerLng));
+        }
+
+
+
+        if(radioCache>0){
+            radiusEditText.setText(String.valueOf(radioCache));
+        }
+        if(waypointcountCache>0){
+            waypointCountSpinner.setText(String.valueOf(waypointcountCache));
+        }
+        if(altitudeCache>0){
+            wpAltitude_TV.setText(String.valueOf(altitudeCache));
+        }
+        if(directionid>0)
+        {
+            direction.check(directionid);
+        }
+        if(speedid>0)
+        {
+            speed_RG.check(speedid);
+        }
+        if(finishid>0)
+        {
+            actionAfterFinished_RG.check(finishid);
+        }
+        if(headingid>0)
+        {
+            heading_RG.check(headingid);
+        }
+        direction.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener(){
+
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                if (checkedId == R.id.direction_clock){
+                    directionC = true;
+                } else if (checkedId == R.id.direction_noclock){
+                    directionC = false;
+                }
+                editor.putInt("DIRECTIONC", checkedId);
+                editor.apply();
+            }
+        });
 
         speed_RG.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener(){
 
@@ -475,6 +549,8 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                 } else if (checkedId == R.id.HighSpeed){
                     mSpeed = 10.0f;
                 }
+                editor.putInt("MSPEED", checkedId);
+                editor.apply();
             }
 
         });
@@ -493,6 +569,8 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                 } else if (checkedId == R.id.finishToFirst){
                     mFinishedAction = WaypointMissionFinishedAction.GO_FIRST_WAYPOINT;
                 }
+                editor.putInt("FINISHACTION", checkedId);
+                editor.apply();
             }
         });
 
@@ -511,6 +589,8 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                 } else if (checkedId == R.id.headingWP) {
                     mHeadingMode = WaypointMissionHeadingMode.USING_WAYPOINT_HEADING;
                 }
+                editor.putInt("HEADING", checkedId);
+                editor.apply();
             }
         });
 
@@ -519,6 +599,9 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                 .setView(wayPointSettings)
                 .setPositiveButton("Finish",new DialogInterface.OnClickListener(){
                     public void onClick(DialogInterface dialog, int id) {
+
+                        SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
+                        SharedPreferences.Editor editor = sharedPreferences.edit();
 
                         String altitudeString = wpAltitude_TV.getText().toString();
                         altitude = Integer.parseInt(nulltoIntegerDefalt(altitudeString));
@@ -535,6 +618,16 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                         String waypointCountString = waypointCountSpinner.getText().toString();
                         waypointCount = Integer.parseInt(nulltoIntegerDefalt(waypointCountString));
 
+                        editor.putFloat("ALTITUDE", altitude);
+                        editor.putString("CENTERLAT", ""+centerLat );
+                        editor.putString("CENTERLNG", ""+centerLng );
+                        editor.putInt("RADIUS", radius );
+                        editor.putInt("WAYPOINTCOUNT", waypointCount);
+
+
+                        editor.apply();
+
+
                         Log.e(TAG,"altitude "+altitude);
                         Log.e(TAG,"centerLat "+centerLat);
                         Log.e(TAG,"centerLng "+centerLng);
@@ -544,7 +637,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                         Log.e(TAG, "mFinishedAction "+mFinishedAction);
                         Log.e(TAG, "mHeadingMode "+mHeadingMode);
                         configWayPointMission();
-                        autoWaypoints();
+
 
                     }
 
@@ -589,6 +682,38 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
 
     private void configWayPointMission(){
 
+        // Limpiar la lista de waypoints anterior
+        waypointList.clear();
+
+
+        // Generar waypoints para el círculo
+        List<Waypoint> waypoints = generateWaypointsForCircle(centerLat, centerLng, radius, waypointCount);
+
+
+
+        // Iterar sobre los waypoints generados
+        for (Waypoint waypoint : waypoints) {
+            // Marcar el waypoint en el mapa
+            markWaypoint(new LatLng(waypoint.coordinate.getLatitude(), waypoint.coordinate.getLongitude()));
+            if (waypointMissionBuilder != null) {
+                waypointList.add(waypoint);
+                waypointMissionBuilder.waypointList(waypointList).waypointCount(waypointList.size());
+            }else
+            {
+                waypointMissionBuilder = new WaypointMission.Builder();
+                waypointList.add(waypoint);
+                waypointMissionBuilder.waypointList(waypointList).waypointCount(waypointList.size());
+            }
+
+            // Agregar el waypoint a la lista
+            //waypointList.add(waypoint);
+        }
+        System.out.println("Cantidad de la lista. "+waypointList.size());
+
+        // Actualizar la cantidad de waypoints en el constructor de la misión
+        waypointMissionBuilder.waypointCount(waypointList.size());
+        System.out.println("Cantidad en el Builder. "+waypointMissionBuilder.getWaypointCount());
+
         if (waypointMissionBuilder == null){
 
             waypointMissionBuilder = new WaypointMission.Builder().finishedAction(mFinishedAction)
@@ -609,12 +734,14 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
 
         }
 
+        System.out.println("Esta es la lista: "+ waypointMissionBuilder.getWaypointList());
+
         if (waypointMissionBuilder.getWaypointList().size() > 0){
 
             for (int i=0; i< waypointMissionBuilder.getWaypointList().size(); i++){
                 Waypoint waypoint = waypointMissionBuilder.getWaypointList().get(i);
                 waypoint.altitude = altitude;
-                waypoint.coordinate = new dji.common.model.LocationCoordinate2D(centerLat, centerLng); // Establecer las coordenadas del punto de ruta
+                //waypoint.coordinate = new dji.common.model.LocationCoordinate2D(centerLat, centerLng); // Establecer las coordenadas del punto de ruta
             }
 
             setResultToToast("Set Waypoint attitude successfully");
@@ -624,6 +751,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
         if (error == null) {
             setResultToToast("loadWaypoint succeeded");
         } else {
+            System.out.println("Aqui está el error:  "+error);
             setResultToToast("loadWaypoint failed " + error.getDescription());
         }
     }
@@ -634,7 +762,40 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
             @Override
             public void onResult(DJIError error) {
                 if (error == null) {
+
                     setResultToToast("Mission upload successfully!");
+                    if (error == null) {
+                        // Construye el objeto JSON con los datos
+                        JSONObject json = new JSONObject();
+                        SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
+                        String password = sharedPreferences.getString("PASSWORD","");
+
+
+
+                        try {
+                            json.put("location", waypointList.get(0));
+                            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+                            String formattedDate = dateFormat.format(new Date());
+                            json.put("date", formattedDate);
+                            json.put("password", password);
+                        } catch (JSONException e) {
+                            throw new RuntimeException(e);
+                        }
+                        int i=0;
+                        try{
+                            i = Integer.valueOf(new CreateRouteActivityAutomatic.PostRequestAsyncTask().execute(json).get().toString());
+                            if(i==201){
+                                setResultToToast("Mission Uploaded to the DataBase successfully.");
+                            }
+
+                        }catch (Exception e){
+                            System.out.println("Aquí el error: "+e);
+                            setResultToToast("Mission Uploaded to the aircraft successfully but It can not be store in the DataBase");
+                        }}
+
+
+
+
                 } else {
                     setResultToToast("Mission upload failed, error: " + error.getDescription() + " retrying...");
                     getWaypointMissionOperator().retryUploadMission(null);
@@ -642,6 +803,64 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
             }
         });
 
+    }
+
+    private class PostRequestAsyncTask extends AsyncTask<JSONObject, Void, Integer> {
+        @Override
+        protected Integer doInBackground(JSONObject... jsonObjects) {
+            JSONObject json = jsonObjects[0];
+            try {
+                System.out.println("Entroooooooo");
+                // Recuperar el valor almacenado en caché desde SharedPreferences
+                SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
+                int cachedValueid = sharedPreferences.getInt("IDUSER",0);
+
+                URL url = new URL("http://3.92.66.111:80/api/usuario/"+cachedValueid+"/vuelo");
+
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setRequestProperty("Content-Type", "application/json");
+                connection.setDoOutput(true);
+
+
+                System.out.println("El Json es: "+ json.toString());
+
+                // Write the JSON to the request body
+                OutputStream outputStream = connection.getOutputStream();
+                outputStream.write(json.toString().getBytes());
+                outputStream.flush();
+                outputStream.close();
+
+
+                return connection.getResponseCode();
+            } catch (IOException e) {
+                System.out.println("El hijueputa error es este: "+e);
+                e.printStackTrace();
+                return -1;
+            }
+        }
+        @Override
+        protected void onPostExecute(Integer responseCode) {
+            if (responseCode == HttpURLConnection.HTTP_CREATED) {
+                showToast("LOG IN exitoso"); // Show a success message to the user
+            } else if (responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
+                showToast("Correo no existe en nuestra base de Datos");
+            }else if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
+                showToast("Contraseña no correcta");
+            } else {
+                showToast("Error en el registro. Código de respuesta: " + responseCode);
+            }
+        }
+    }
+
+    private void showToast(final String toastMsg) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), toastMsg, Toast.LENGTH_LONG).show();
+
+            }
+        });
     }
 
     private void startWaypointMission(){
@@ -672,7 +891,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
             setUpMap();
         }
 
-        LatLng bogota = new LatLng(4.624335, -74.063644);
+        LatLng bogota = new LatLng(4.601183, -74.06584);
         gMap.addMarker(new MarkerOptions().position(bogota).title("Marker in Bogota"));
         gMap.moveCamera(CameraUpdateFactory.newLatLng(bogota));
     }

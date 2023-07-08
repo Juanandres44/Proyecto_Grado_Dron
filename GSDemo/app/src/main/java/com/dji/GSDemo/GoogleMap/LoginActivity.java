@@ -133,6 +133,11 @@ public class LoginActivity extends Activity implements View.OnClickListener {
                     throw new RuntimeException(e);
                 }
 
+                SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString("PASSWORD", password);
+                editor.apply();
+
 
                 // Llama al método para enviar la solicitud HTTP POST al endpoint
                 Integer i=0;

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -111,6 +115,45 @@
             android:layout_width="40dp"
             android:layout_height="wrap_content">
         </EditText>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="10dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Flight direction:"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
+        <RadioGroup
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:id="@+id/direction"
+            android:layout_gravity="center_horizontal">
+            <RadioButton
+                android:id="@+id/direction_clock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="5pt"
+                android:text="Clockwise"/>
+            <RadioButton
+                android:id="@+id/direction_noclock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="5pt"
+                android:text="Counter clockwise"/>
+        </RadioGroup>
     </LinearLayout>
 
     <LinearLayout
@@ -297,3 +340,4 @@
         </RadioGroup>
     </LinearLayout>
 </LinearLayout>
+</ScrollView>

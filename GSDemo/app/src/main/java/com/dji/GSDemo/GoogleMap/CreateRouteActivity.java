@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Build;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
@@ -30,7 +31,18 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,6 +66,7 @@ import dji.sdk.mission.waypoint.WaypointMissionOperatorListener;
 import dji.sdk.products.Aircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 import dji.sdk.useraccount.UserAccountManager;
+import dji.thirdparty.afinal.core.AsyncTask;
 
 public class CreateRouteActivity extends FragmentActivity implements View.OnClickListener, GoogleMap.OnMapClickListener, OnMapReadyCallback {
 
@@ -399,12 +412,39 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
     }
 
     private void showSettingDialog(){
+
+        SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+
+        int speedid = sharedPreferences.getInt("MSPEED",0);
+        int finishid = sharedPreferences.getInt("FINISHACTION",0);
+        int headingid = sharedPreferences.getInt("HEADING",0);
+        int altitudeCache = (int) sharedPreferences.getFloat("ALTITUDE",0);
+
+
         LinearLayout wayPointSettings = (LinearLayout)getLayoutInflater().inflate(R.layout.dialog_waypoint2setting, null);
 
         final TextView wpAltitude_TV = (TextView) wayPointSettings.findViewById(R.id.altitude);
         RadioGroup speed_RG = (RadioGroup) wayPointSettings.findViewById(R.id.speed);
         RadioGroup actionAfterFinished_RG = (RadioGroup) wayPointSettings.findViewById(R.id.actionAfterFinished);
         RadioGroup heading_RG = (RadioGroup) wayPointSettings.findViewById(R.id.heading);
+
+        // Establecer los valores en los TextView
+        if(speedid>0)
+        {
+            speed_RG.check(speedid);
+        }
+        if(finishid>0)
+        {
+            actionAfterFinished_RG.check(finishid);
+        }
+        if(headingid>0)
+        {
+            heading_RG.check(headingid);
+        }
+        if(altitudeCache>0){
+            wpAltitude_TV.setText(String.valueOf(altitudeCache));
+        }
 
         speed_RG.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener(){
 
@@ -417,6 +457,8 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                 } else if (checkedId == R.id.HighSpeed){
                     mSpeed = 10.0f;
                 }
+                editor.putInt("MSPEED", checkedId);
+                editor.apply();
             }
 
         });
@@ -435,6 +477,8 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                 } else if (checkedId == R.id.finishToFirst){
                     mFinishedAction = WaypointMissionFinishedAction.GO_FIRST_WAYPOINT;
                 }
+                editor.putInt("FINISHACTION", checkedId);
+                editor.apply();
             }
         });
 
@@ -453,6 +497,8 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                 } else if (checkedId == R.id.headingWP) {
                     mHeadingMode = WaypointMissionHeadingMode.USING_WAYPOINT_HEADING;
                 }
+                editor.putInt("HEADING", checkedId);
+                editor.apply();
             }
         });
 
@@ -468,6 +514,8 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                         Log.e(TAG,"speed "+mSpeed);
                         Log.e(TAG, "mFinishedAction "+mFinishedAction);
                         Log.e(TAG, "mHeadingMode "+mHeadingMode);
+                        editor.putFloat("ALTITUDE", altitude);
+                        editor.apply();
                         configWayPointMission();
                     }
 
@@ -538,15 +586,90 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
         getWaypointMissionOperator().uploadMission(new CommonCallbacks.CompletionCallback() {
             @Override
             public void onResult(DJIError error) {
+
+                setResultToToast("Mission upload successfully!");
                 if (error == null) {
-                    setResultToToast("Mission upload successfully!");
+                    // Construye el objeto JSON con los datos
+                    JSONObject json = new JSONObject();
+                    SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
+                    String password = sharedPreferences.getString("PASSWORD","");
+
+
+
+                    try {
+                        json.put("location", waypointList.get(0));
+                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+                        String formattedDate = dateFormat.format(new Date());
+                        json.put("date", formattedDate);
+                        json.put("password", password);
+                    } catch (JSONException e) {
+                        throw new RuntimeException(e);
+                    }
+                    int i=0;
+                    try{
+                        i = Integer.valueOf(new CreateRouteActivity.PostRequestAsyncTask().execute(json).get().toString());
+                        if(i==201){
+                            setResultToToast("Mission Uploaded to the DataBase successfully.");
+                        }
+
+                    }catch (Exception e){
+                        System.out.println("Aquí el error: "+e);
+                        setResultToToast("Mission Uploaded to the aircraft successfully but It can not be store in the DataBase");
+                    }
                 } else {
                     setResultToToast("Mission upload failed, error: " + error.getDescription() + " retrying...");
                     getWaypointMissionOperator().retryUploadMission(null);
                 }
             }
         });
+    }
 
+    private class PostRequestAsyncTask extends AsyncTask<JSONObject, Void, Integer> {
+        @Override
+        protected Integer doInBackground(JSONObject... jsonObjects) {
+            JSONObject json = jsonObjects[0];
+            try {
+                System.out.println("Entroooooooo");
+                // Recuperar el valor almacenado en caché desde SharedPreferences
+                SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
+                int cachedValueid = sharedPreferences.getInt("IDUSER",0);
+
+                URL url = new URL("http://3.92.66.111:80/api/usuario/"+cachedValueid+"/vuelo");
+
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setRequestProperty("Content-Type", "application/json");
+                connection.setDoOutput(true);
+
+
+                System.out.println("El Json es: "+ json.toString());
+
+                // Write the JSON to the request body
+                OutputStream outputStream = connection.getOutputStream();
+                outputStream.write(json.toString().getBytes());
+                outputStream.flush();
+                outputStream.close();
+
+
+                return connection.getResponseCode();
+            } catch (IOException e) {
+                System.out.println("El hijueputa error es este: "+e);
+                e.printStackTrace();
+                return -1;
+            }
+        }
+        @Override
+        protected void onPostExecute(Integer responseCode) {
+            if (responseCode == HttpURLConnection.HTTP_CREATED) {
+                showToast("LOG IN exitoso"); // Show a success message to the user
+            } else if (responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
+                showToast("Correo no existe en nuestra base de Datos");
+            }else if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
+                showToast("Contraseña no correcta");
+            } else {
+                showToast("Error en el registro. Código de respuesta: " + responseCode);
+            }
+        }
     }
 
     private void startWaypointMission(){
@@ -580,6 +703,16 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
         LatLng bogota = new LatLng(4.624335, -74.063644);
         gMap.addMarker(new MarkerOptions().position(bogota).title("Marker in Bogota"));
         gMap.moveCamera(CameraUpdateFactory.newLatLng(bogota));
+    }
+
+    private void showToast(final String toastMsg) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), toastMsg, Toast.LENGTH_LONG).show();
+
+            }
+        });
     }
 
 }
