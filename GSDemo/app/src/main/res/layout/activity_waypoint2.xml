@@ -82,23 +82,6 @@
             android:text="Stop" />
     </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/btn_add_action"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="AddAction" />
-
-        <Button
-            android:id="@+id/btn_upload_action"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="UploadAction" />
-    </LinearLayout>
 
     <TextView
         android:id="@+id/tv_log"

@@ -13,10 +13,10 @@
             android:title="Upload info to aircraft"/>
         <item
             android:id="@+id/menu_seccion_create"
-            android:title="Create new route"/>
+            android:title="Create new manual route"/>
         <item
             android:id="@+id/menu_seccion_createauto"
-            android:title="Create new figure route"/>
+            android:title="Create new pattern route"/>
     </group>
 
     <item

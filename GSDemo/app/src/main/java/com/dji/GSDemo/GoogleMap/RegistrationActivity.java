@@ -170,7 +170,7 @@ public class RegistrationActivity extends Activity implements View.OnClickListen
         protected Integer doInBackground(JSONObject... jsonObjects) {
             JSONObject json = jsonObjects[0];
             try {
-                URL url = new URL("http://3.92.66.111:80/api/usuario");
+                URL url = new URL("http://3.208.19.176:80/api/usuario");
 
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");

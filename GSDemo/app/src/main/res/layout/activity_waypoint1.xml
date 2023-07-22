@@ -25,16 +25,16 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
         <Button
-            android:id="@+id/locate"
+            android:id="@+id/config"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Locate"
-            android:layout_weight="1"/>
+            android:text="Polygon"
+            android:layout_weight="0.9"/>
         <Button
-            android:id="@+id/add"
+            android:id="@+id/configRect"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Add"
+            android:text="Rectangle"
             android:layout_weight="1"/>
         <Button
             android:id="@+id/clear"
@@ -49,11 +49,11 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
         <Button
-            android:id="@+id/config"
+            android:id="@+id/locate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Config"
-            android:layout_weight="0.9"/>
+            android:text="Locate"
+            android:layout_weight="1"/>
         <Button
             android:id="@+id/upload"
             android:layout_width="match_parent"

@@ -165,14 +165,13 @@ public class LoginActivity extends Activity implements View.OnClickListener {
         protected Integer doInBackground(JSONObject... jsonObjects) {
             JSONObject json = jsonObjects[0];
             try {
-                URL url = new URL("http://3.92.66.111:80/api/usuario/login");
+                URL url = new URL("http://3.208.19.176:80/api/usuario/login");
 
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");
                 connection.setRequestProperty("Content-Type", "application/json");
                 connection.setDoOutput(true);
 
-                // Write the JSON to the request body
                 OutputStream outputStream = connection.getOutputStream();
                 outputStream.write(json.toString().getBytes());
                 outputStream.flush();

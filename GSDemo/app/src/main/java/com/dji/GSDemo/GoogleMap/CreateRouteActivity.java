@@ -56,6 +56,7 @@ import dji.common.mission.waypoint.WaypointMissionFinishedAction;
 import dji.common.mission.waypoint.WaypointMissionFlightPathMode;
 import dji.common.mission.waypoint.WaypointMissionHeadingMode;
 import dji.common.mission.waypoint.WaypointMissionUploadEvent;
+import dji.common.model.LocationCoordinate2D;
 import dji.common.useraccount.UserAccountState;
 import dji.common.util.CommonCallbacks;
 import dji.sdk.base.BaseProduct;
@@ -93,6 +94,10 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
     private WaypointMissionOperator instance;
     private WaypointMissionFinishedAction mFinishedAction = WaypointMissionFinishedAction.NO_ACTION;
     private WaypointMissionHeadingMode mHeadingMode = WaypointMissionHeadingMode.AUTO;
+
+    private boolean started = false;
+
+    private List<Waypoint> waypointsDrone = new ArrayList<>();
 
     @Override
     protected void onResume(){
@@ -169,7 +174,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                     , 1);
         }
 
-        setContentView(R.layout.activity_waypoint1);
+        setContentView(R.layout.activity_waypoint2);
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(DJIDemoApplication.FLAG_CONNECTION_CHANGE);
@@ -231,6 +236,23 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                 public void onUpdate(FlightControllerState djiFlightControllerCurrentState) {
                     droneLocationLat = djiFlightControllerCurrentState.getAircraftLocation().getLatitude();
                     droneLocationLng = djiFlightControllerCurrentState.getAircraftLocation().getLongitude();
+                    if(started){
+                        Waypoint waypoint1=new Waypoint(droneLocationLat,droneLocationLng,altitude);
+
+                        if(waypointsDrone.size()>0&&      (waypointsDrone.get(waypointsDrone.size()-1).coordinate.getLatitude()!=waypoint1.coordinate.getLatitude() || waypointsDrone.get(waypointsDrone.size()-1).coordinate.getLongitude()!=waypoint1.coordinate.getLongitude())){
+
+                            waypointsDrone.add(waypoint1);
+
+                        }else{
+                            if(waypointsDrone.size()==0)
+                            {
+                                waypointsDrone.add(waypoint1);
+                            }
+                        }
+                        System.out.println("ESTO IMPRIME LOS WAYPOINTS: "+waypointsDrone);
+                    }else{
+                        waypointsDrone.clear();
+                    }
                     updateDroneLocation();
                 }
             });
@@ -273,6 +295,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
 
         @Override
         public void onExecutionFinish(@Nullable final DJIError error) {
+            hacerUpdate();
             setResultToToast("Execution finished: " + (error == null ? "Success!" : error.getDescription()));
         }
     };
@@ -593,15 +616,26 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                     JSONObject json = new JSONObject();
                     SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
                     String password = sharedPreferences.getString("PASSWORD","");
-
-
-
                     try {
-                        json.put("location", waypointList.get(0));
+                        json.put("locationinitLat", droneLocationLat);
+                        json.put("locationinitLng", droneLocationLng);
                         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
                         String formattedDate = dateFormat.format(new Date());
                         json.put("date", formattedDate);
-                        json.put("password", password);
+                        json.put("altitude", (double) altitude);
+                        json.put("type", "Manual");
+                        json.put("heading", mHeadingMode.toString());
+                        json.put("finishing", mFinishedAction.toString());
+                        json.put("numberWaypoints", waypointList.size());
+                        json.put("speed", (double)mSpeed);
+
+                        System.out.println(json);
+
+                        List<LocationCoordinate2D> lista = new ArrayList<>();
+                        for(int i=0; i<waypointList.size();i++){
+                            lista.add(waypointList.get(i).coordinate);
+                        }
+                        json.put("waypointsList", lista);
                     } catch (JSONException e) {
                         throw new RuntimeException(e);
                     }
@@ -634,10 +668,87 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                 SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
                 int cachedValueid = sharedPreferences.getInt("IDUSER",0);
 
-                URL url = new URL("http://3.92.66.111:80/api/usuario/"+cachedValueid+"/vuelo");
+                URL url = new URL("http://3.208.19.176:80/api/usuario/"+cachedValueid+"/vuelo");
 
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");
+                connection.setRequestProperty("Content-Type", "application/json");
+                connection.setDoOutput(true);
+
+
+                System.out.println("El Json es: "+ json.toString());
+
+                // Write the JSON to the request body
+                OutputStream outputStream = connection.getOutputStream();
+                outputStream.write(json.toString().getBytes());
+                outputStream.flush();
+                outputStream.close();
+
+                if(connection.getResponseCode()==201) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    String line;
+                    StringBuilder response = new StringBuilder();
+
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    reader.close();
+
+
+                    JSONObject json1 = new JSONObject(response.toString());
+
+                    // Acceder a los valores del objeto JSON
+                    Integer id = json1.getInt("id");
+
+
+                    sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putString("RESPONSE", response.toString());
+                    editor.putInt("IDVUELO",id);
+                    editor.apply();
+
+
+                    System.out.println("Así Quedó el cache del vuelo id: "+id);
+                }
+
+
+                return connection.getResponseCode();
+            } catch (Exception e) {
+                System.out.println("El hijueputa error es este: "+e);
+                e.printStackTrace();
+                return -1;
+            }
+        }
+        @Override
+        protected void onPostExecute(Integer responseCode) {
+            if (responseCode == HttpURLConnection.HTTP_CREATED) {
+                showToast("LOG IN exitoso"); // Show a success message to the user
+            } else if (responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
+                showToast("Correo no existe en nuestra base de Datos");
+            }else if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
+                showToast("Contraseña no correcta");
+            } else {
+                showToast("Error en el registro. Código de respuesta: " + responseCode);
+            }
+        }
+    }
+
+    private class PutRequestAsyncTask extends AsyncTask<JSONObject, Void, Integer> {
+        @Override
+        protected Integer doInBackground(JSONObject... jsonObjects) {
+            JSONObject json = jsonObjects[0];
+            try {
+                System.out.println("Entroooooooo");
+                // Recuperar el valor almacenado en caché desde SharedPreferences
+                SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
+                int cachedValueid = sharedPreferences.getInt("IDUSER",0);
+                int cachedValueVuelo = sharedPreferences.getInt("IDVUELO",0);
+                System.out.println("CACHE USUARIO: "+cachedValueid+"CHACHE VUELO: "+cachedValueVuelo);
+
+                URL url = new URL("http://3.208.19.176:80/api/usuario/"+cachedValueid+"/vuelo/"+cachedValueVuelo+"/finishing");
+
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("PUT");
                 connection.setRequestProperty("Content-Type", "application/json");
                 connection.setDoOutput(true);
 
@@ -671,6 +782,41 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
             }
         }
     }
+    public void hacerUpdate(){
+        JSONObject json = new JSONObject();
+
+        try {
+            json.put("locationFinishLat", droneLocationLat);
+            json.put("locationFinishLng", droneLocationLng);
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+            String formattedDate = dateFormat.format(new Date());
+            json.put("finishdate", formattedDate);
+            json.put("coordinates", waypointsDrone);
+
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+
+        int i=0;
+        try{
+            i = Integer.valueOf(new CreateRouteActivity.PutRequestAsyncTask().execute(json).get().toString());
+            if(i==200){
+                setResultToToast("Mission Updated to the DataBase successfully.");
+            }
+
+        }catch (Exception e){
+            System.out.println("Aquí el error: "+e);
+            setResultToToast("Mission Uploaded to the aircraft successfully but It can not be store in the DataBase");
+        }
+
+    }
+
+
+
+
+
+
+
 
     private void startWaypointMission(){
 
@@ -678,6 +824,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
             @Override
             public void onResult(DJIError error) {
                 setResultToToast("Mission Start: " + (error == null ? "Successfully" : error.getDescription()));
+                started=true;
             }
         });
     }
@@ -714,5 +861,6 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
             }
         });
     }
+
 
 }

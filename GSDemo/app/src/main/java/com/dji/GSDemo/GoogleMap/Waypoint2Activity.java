@@ -156,30 +156,7 @@ public class Waypoint2Activity extends FragmentActivity implements View.OnClickL
         start.setOnClickListener(this);
         stop.setOnClickListener(this);
 
-        findViewById(R.id.btn_add_action).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (isAdd) {
-                    Toast.makeText(v.getContext(), "Adding waypoint!", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                if (waypointMissionBuilder == null || waypointMissionBuilder.getWaypointCount() == 0) {
-                    Toast.makeText(v.getContext(), "Please add waypoint first!", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                if (mActionDialog == null) {
-                    mActionDialog = new WaypointV2ActionDialog();
-                    mActionDialog.setActionCallback(actions -> {
-                        v2Actions = actions;
-                        Log.d("v2_action", "originSize=" + actions.size());
-                    });
-                }
-                mActionDialog.setSize(waypointMissionBuilder.getWaypointCount());
-                mActionDialog.show(getSupportFragmentManager(), "add_action");
-            }
-        });
 
-        findViewById(R.id.btn_upload_action).setOnClickListener(this);
     }
 
     private void initMapView() {
@@ -541,28 +518,7 @@ public class Waypoint2Activity extends FragmentActivity implements View.OnClickL
                 stopWaypointMission();
                 break;
             }
-            case R.id.btn_upload_action:
-                if (!canUploadAction) {
-                    setResultToToast("Can`t Upload action");
-                    return;
-                }
-                if (v2Actions == null || v2Actions.isEmpty()) {
-                    setResultToToast("Please Add Actions");
-                    return;
-                }
-                getWaypointMissionOperator().uploadWaypointActions(v2Actions, new CommonCallbacks.CompletionCallback<DJIWaypointV2Error>() {
-                    @Override
-                    public void onResult(DJIWaypointV2Error djiWaypointV2Error) {
-                        if (djiWaypointV2Error == null) {
-                            setResultToToast("Upload action success");
-                        } else {
-                            setResultToToast("Upload action fail:" + djiWaypointV2Error.getDescription());
-                        }
-                    }
-                });
-                break;
-            default:
-                break;
+
         }
     }
 
