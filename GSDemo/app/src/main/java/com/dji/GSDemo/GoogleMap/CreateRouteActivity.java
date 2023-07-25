@@ -784,6 +784,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
     }
     public void hacerUpdate(){
         JSONObject json = new JSONObject();
+        started = false;
 
         try {
             json.put("locationFinishLat", droneLocationLat);

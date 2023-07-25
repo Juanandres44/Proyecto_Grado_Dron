@@ -381,23 +381,6 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
 
         double earthR = 6378140;
 
-//        for (int i = 0; i < 4; i++) {
-//            double currentAngle = angle + i * angleIncrement;
-//            double xOffset = (width / 2) * Math.cos(currentAngle);
-//            double yOffset = (height / 2) * Math.sin(currentAngle);
-//
-//            double x = xOffset * Math.cos(angle) - yOffset * Math.sin(angle);
-//            double y = xOffset * Math.sin(angle) + yOffset * Math.cos(angle);
-//
-//            double longF = centerLng + (x / earthR) * ((180 / Math.PI) / Math.cos(centerLat * (Math.PI / 180)));
-//            double latF = centerLat + (y / earthR) * (180 / Math.PI);
-//
-//            Waypoint waypoint = new Waypoint(latF, longF, altitude);
-//            waypoints.add(waypoint);
-//        }
-
-
-
         double xOffset[] = new double[4];
         double yOffset[] = new double[4];
 
@@ -1156,7 +1139,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                             json.put("heading", mHeadingMode.toString());
                             json.put("finishing", mFinishedAction.toString());
                             json.put("numberWaypoints", waypointList.size());
-                            json.put("radius", radius);
+
                             json.put("speed", (double)mSpeed);
 
                             System.out.println(json);
@@ -1165,6 +1148,16 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                             for(int i=0; i<waypointList.size();i++){
                                 lista.add(waypointList.get(i).coordinate);
                             }
+                            if(type.equals("Poligono")){
+                                json.put("radius", radius);
+                            }
+                            if(type.equals("Rectangulo")){
+                                json.put("width", width);
+                                json.put("height", height);
+                                json.put("angle", rotAngle);
+                            }
+
+
                             json.put("waypointsList", lista);
 
                         } catch (JSONException e) {
@@ -1197,6 +1190,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
 
     public void hacerUpdate(){
         JSONObject json = new JSONObject();
+        started = false;
 
         try {
             json.put("locationFinishLat", droneLocationLat);
