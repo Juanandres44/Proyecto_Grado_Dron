@@ -25,23 +25,30 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
         <Button
-            android:id="@+id/config"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Polygon"
-            android:layout_weight="0.9"/>
-        <Button
             android:id="@+id/configRect"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Rectangle"
+            android:layout_weight="0.9"/>
+        <Button
+            android:id="@+id/config"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Circle"
             android:layout_weight="1"/>
+
         <Button
             android:id="@+id/clear"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Clear"
             android:layout_weight="1"/>
+        <Button
+            android:id="@+id/load"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Load"
+            android:layout_weight="0.9"/>
     </LinearLayout>
 
     <LinearLayout

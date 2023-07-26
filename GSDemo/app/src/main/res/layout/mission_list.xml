@@ -1,0 +1,25 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Aquí puedes agregar un título o alguna descripción para el diálogo si lo deseas -->
+    <!-- TextView para el título -->
+    <!-- TextView para la descripción -->
+
+    <!-- Aquí se agregará la lista de misiones -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:id="@+id/missionLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <!-- Los elementos de la lista se agregarán dinámicamente desde el código Java -->
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

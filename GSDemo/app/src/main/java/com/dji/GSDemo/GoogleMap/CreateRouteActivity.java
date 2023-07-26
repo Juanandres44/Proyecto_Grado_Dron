@@ -14,6 +14,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -31,6 +32,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -45,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import dji.common.flightcontroller.FlightControllerState;
@@ -76,7 +79,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
     private GoogleMap gMap;
 
     private Button locate, add, clear;
-    private Button config, upload, start, stop;
+    private Button config, upload, start, stop,load;
 
     private boolean isAdd = false;
 
@@ -96,6 +99,8 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
     private WaypointMissionHeadingMode mHeadingMode = WaypointMissionHeadingMode.AUTO;
 
     private boolean started = false;
+
+    private String missionCodeApp = UUID.randomUUID().toString();
 
     private List<Waypoint> waypointsDrone = new ArrayList<>();
 
@@ -143,6 +148,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
         upload = (Button) findViewById(R.id.upload);
         start = (Button) findViewById(R.id.start);
         stop = (Button) findViewById(R.id.stop);
+        load = (Button) findViewById(R.id.load);
 
         locate.setOnClickListener(this);
         add.setOnClickListener(this);
@@ -151,6 +157,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
         upload.setOnClickListener(this);
         start.setOnClickListener(this);
         stop.setOnClickListener(this);
+        load.setOnClickListener(this);
 
     }
 
@@ -249,7 +256,6 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                                 waypointsDrone.add(waypoint1);
                             }
                         }
-                        System.out.println("ESTO IMPRIME LOS WAYPOINTS: "+waypointsDrone);
                     }else{
                         waypointsDrone.clear();
                     }
@@ -373,6 +379,11 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
+            case R.id.load:{
+                System.out.println("entroooooooooooooooooooooooooooooo");
+                hacerGet();
+                break;
+            }
             case R.id.locate:{
                 updateDroneLocation();
                 cameraUpdate(); // Locate the drone's place
@@ -439,10 +450,26 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
         SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
 
-        int speedid = sharedPreferences.getInt("MSPEED",0);
-        int finishid = sharedPreferences.getInt("FINISHACTION",0);
-        int headingid = sharedPreferences.getInt("HEADING",0);
-        int altitudeCache = (int) sharedPreferences.getFloat("ALTITUDE",0);
+        int speedid = 0;
+        int finishid = 0;
+        int headingid = 0;
+        int altitudeCache = 0;
+
+
+
+
+        if(missionCodeApp!=null&&missionCodeApp.toCharArray().length>0){
+            System.out.println("Entroo");
+            speedid = sharedPreferences.getInt(missionCodeApp+"MSPEED",0);
+            finishid = sharedPreferences.getInt(missionCodeApp+"FINISHACTION",0);
+            headingid = sharedPreferences.getInt(missionCodeApp+"HEADING",0);
+            altitudeCache = (int) sharedPreferences.getFloat(missionCodeApp+"ALTITUDE",0);
+        }else{
+            speedid = sharedPreferences.getInt("MSPEED",0);
+            finishid = sharedPreferences.getInt("FINISHACTION",0);
+            headingid = sharedPreferences.getInt("HEADING",0);
+            altitudeCache = (int) sharedPreferences.getFloat("ALTITUDE",0);
+        }
 
 
         LinearLayout wayPointSettings = (LinearLayout)getLayoutInflater().inflate(R.layout.dialog_waypoint2setting, null);
@@ -481,6 +508,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                     mSpeed = 10.0f;
                 }
                 editor.putInt("MSPEED", checkedId);
+                editor.putInt(missionCodeApp+"MSPEED",checkedId);
                 editor.apply();
             }
 
@@ -501,6 +529,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                     mFinishedAction = WaypointMissionFinishedAction.GO_FIRST_WAYPOINT;
                 }
                 editor.putInt("FINISHACTION", checkedId);
+                editor.putInt(missionCodeApp+"FINISHACTION",checkedId);
                 editor.apply();
             }
         });
@@ -521,6 +550,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                     mHeadingMode = WaypointMissionHeadingMode.USING_WAYPOINT_HEADING;
                 }
                 editor.putInt("HEADING", checkedId);
+                editor.putInt(missionCodeApp+"HEADING",checkedId);
                 editor.apply();
             }
         });
@@ -538,6 +568,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                         Log.e(TAG, "mFinishedAction "+mFinishedAction);
                         Log.e(TAG, "mHeadingMode "+mHeadingMode);
                         editor.putFloat("ALTITUDE", altitude);
+                        editor.putFloat(missionCodeApp+"ALTITUDE",altitude);
                         editor.apply();
                         configWayPointMission();
                     }
@@ -636,6 +667,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
                             lista.add(waypointList.get(i).coordinate);
                         }
                         json.put("waypointsList", lista);
+                        json.put("missionCode",missionCodeApp);
                     } catch (JSONException e) {
                         throw new RuntimeException(e);
                     }
@@ -792,7 +824,7 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
             String formattedDate = dateFormat.format(new Date());
             json.put("finishdate", formattedDate);
-            json.put("coordinates", waypointsDrone);
+            //json.put("coordinates", waypointsDrone);
 
         } catch (JSONException e) {
             throw new RuntimeException(e);
@@ -840,6 +872,125 @@ public class CreateRouteActivity extends FragmentActivity implements View.OnClic
         });
 
     }
+
+    public void hacerGet() {
+        try {
+            List<Mission> missions = new CreateRouteActivity.GetRequestAsyncTask().execute(new JSONObject()).get();
+            if (!missions.isEmpty()) {
+                // Aquí mostramos el diálogo solo si hay misiones disponibles
+                showMissionListDialog(missions);
+                setResultToToast("Datos traídos exitosamente.");
+            } else {
+                setResultToToast("No se encontraron misiones.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            setResultToToast("No se trajeron los datos.");
+        }
+    }
+
+
+    private class GetRequestAsyncTask extends AsyncTask<JSONObject, Void, List<Mission>> {
+        @Override
+        protected List<Mission> doInBackground(JSONObject... jsonObjects) {
+            List<Mission> missions = new ArrayList<>();
+            try {
+                System.out.println("Entroooooooo");
+                // Recuperar el valor almacenado en caché desde SharedPreferences
+                SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
+                int cachedValueid = sharedPreferences.getInt("IDUSER",0);
+
+                URL url = new URL("http://3.208.19.176:80/api/usuario/"+cachedValueid+"/vuelo");
+
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setRequestProperty("Content-Type", "application/json");
+                connection.setConnectTimeout(5000); // Tiempo máximo de conexión en milisegundos
+                connection.setReadTimeout(5000);
+
+                if(connection.getResponseCode()==200) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    String line;
+                    StringBuilder response = new StringBuilder();
+
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    reader.close();
+
+
+                    JSONArray json1 = new JSONArray(response.toString());
+
+                    for (int i = 0; i < json1.length(); i++) {
+                        String idVuelo = json1.getJSONObject(i).getString("id");
+                        String tipo = json1.getJSONObject(i).getString("type");
+                        String missionCode = json1.getJSONObject(i).getString("missionCode");
+
+                        Mission mission = new Mission(idVuelo, tipo, missionCode);
+                        missions.add(mission);
+                    }
+                }
+
+
+
+
+
+
+
+                return missions;
+            } catch (Exception e) {
+                System.out.println("El hijueputa error es este: "+e);
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+    }
+
+
+
+    private void showMissionListDialog(List<Mission> missions) {
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
+        LayoutInflater inflater = this.getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.mission_list, null);
+        dialogBuilder.setView(dialogView);
+
+        // Aquí puedes agregar una lista o un RecyclerView para mostrar todas las misiones
+        LinearLayout missionLayout = dialogView.findViewById(R.id.missionLayout);
+
+        for (Mission mission : missions) {
+            View missionItemView = inflater.inflate(R.layout.mission_item, null);
+            TextView textViewIdVuelo = missionItemView.findViewById(R.id.textViewIdVuelo);
+            TextView textViewTipo = missionItemView.findViewById(R.id.textViewTipo);
+            TextView textViewMissionCode = missionItemView.findViewById(R.id.textViewMissionCode);
+
+            textViewIdVuelo.setText("ID Vuelo: " + mission.getIdVuelo());
+            textViewTipo.setText("Tipo: " + mission.getTipo());
+            textViewMissionCode.setText("Mission Code: " + mission.getMissionCode());
+
+            missionItemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // Obtener el valor del "missionCode" del objeto seleccionado
+                    Mission selectedMission = missions.get(missionLayout.indexOfChild(v));
+                    missionCodeApp = selectedMission.getMissionCode();
+                    System.out.println("HOla Mission.............. "+missionCodeApp);
+
+                    // Cerrar el diálogo cuando el usuario selecciona una misión
+
+                }
+            });
+
+            missionLayout.addView(missionItemView);
+        }
+
+        AlertDialog alertDialog = dialogBuilder.create();
+        alertDialog.show();
+    }
+
+
+
+
 
     @Override
     public void onMapReady(GoogleMap googleMap) {

@@ -11,8 +11,11 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -32,6 +35,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -47,6 +51,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import dji.common.error.DJIError;
@@ -78,7 +83,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
     private GoogleMap gMap;
 
     private Button locate, configRect, clear;
-    private Button config, upload, start, stop;
+    private Button config, upload,load, start, stop;
 
     private boolean isAdd = false;
 
@@ -122,6 +127,8 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
     private boolean started = false;
 
     private List<Waypoint> waypointsDrone = new ArrayList<>();
+
+    private String missionCodeApp = UUID.randomUUID().toString();
 
 
 
@@ -168,6 +175,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
         clear = (Button) findViewById(R.id.clear);
         config = (Button) findViewById(R.id.config);
         upload = (Button) findViewById(R.id.upload);
+        load = (Button) findViewById(R.id.load);
         start = (Button) findViewById(R.id.start);
         stop = (Button) findViewById(R.id.stop);
 
@@ -176,6 +184,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
         clear.setOnClickListener(this);
         config.setOnClickListener(this);
         upload.setOnClickListener(this);
+        load.setOnClickListener(this);
         start.setOnClickListener(this);
         stop.setOnClickListener(this);
 
@@ -266,7 +275,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                     if(started){
                         Waypoint waypoint1=new Waypoint(droneLocationLat,droneLocationLng,altitude);
 
-                        if(waypointsDrone.size()>0&&      (waypointsDrone.get(waypointsDrone.size()-1).coordinate.getLatitude()!=waypoint1.coordinate.getLatitude() || waypointsDrone.get(waypointsDrone.size()-1).coordinate.getLongitude()!=waypoint1.coordinate.getLongitude())){
+                        if(waypointsDrone.size()>0&&(waypointsDrone.get(waypointsDrone.size()-1).coordinate.getLatitude()!=waypoint1.coordinate.getLatitude() || waypointsDrone.get(waypointsDrone.size()-1).coordinate.getLongitude()!=waypoint1.coordinate.getLongitude())){
 
                             waypointsDrone.add(waypoint1);
 
@@ -504,6 +513,10 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                 uploadWayPointMission();
                 break;
             }
+            case R.id.load:{
+                hacerGet();
+                break;
+            }
             case R.id.start:{
                 startWaypointMission();
                 break;
@@ -535,15 +548,47 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
 
         centerLat = droneLocationLat;
         centerLng = droneLocationLng;
-        int directionid = sharedPreferences.getInt("DIRECTIONC",0);
-        int speedid = sharedPreferences.getInt("MSPEED",0);
-        int finishid = sharedPreferences.getInt("FINISHACTION",0);
-        int headingid = sharedPreferences.getInt("HEADING",0);
-        int radioCache= sharedPreferences.getInt("RADIUS",0);
-        int waypointcountCache= sharedPreferences.getInt("WAYPOINTCOUNT",0);
-        int altitudeCache = (int) sharedPreferences.getFloat("ALTITUDE",0);
-        String latCache = sharedPreferences.getString("CENTERLAT","");
-        String lngCache = sharedPreferences.getString("CENTERLNG","");
+
+
+
+        int directionid = 0;
+        int speedid = 0;
+        int finishid = 0;
+        int headingid = 0;
+        int radioCache= 0;
+        int waypointcountCache= 0;
+        int altitudeCache = 0;
+        String latCache = "";
+        String lngCache = "";
+
+        if(missionCodeApp!=null&&missionCodeApp.toCharArray().length>0){
+            System.out.println("Entroo");
+            directionid = sharedPreferences.getInt(missionCodeApp+"DIRECTIONC",0);
+            speedid = sharedPreferences.getInt(missionCodeApp+"MSPEED",0);
+            finishid = sharedPreferences.getInt(missionCodeApp+"FINISHACTION",0);
+            headingid = sharedPreferences.getInt(missionCodeApp+"HEADING",0);
+            radioCache= sharedPreferences.getInt(missionCodeApp+"RADIUS",0);
+            waypointcountCache= sharedPreferences.getInt(missionCodeApp+"WAYPOINTCOUNT",0);
+            altitudeCache = (int) sharedPreferences.getFloat(missionCodeApp+"ALTITUDE",0);
+            latCache = sharedPreferences.getString(missionCodeApp+"CENTERLAT","");
+            lngCache = sharedPreferences.getString(missionCodeApp+"CENTERLNG","");
+
+        }else{
+            directionid = sharedPreferences.getInt("DIRECTIONC",0);
+            speedid = sharedPreferences.getInt("MSPEED",0);
+            finishid = sharedPreferences.getInt("FINISHACTION",0);
+            headingid = sharedPreferences.getInt("HEADING",0);
+            radioCache= sharedPreferences.getInt("RADIUS",0);
+            waypointcountCache= sharedPreferences.getInt("WAYPOINTCOUNT",0);
+            altitudeCache = (int) sharedPreferences.getFloat("ALTITUDE",0);
+            latCache = sharedPreferences.getString("CENTERLAT","");
+            lngCache = sharedPreferences.getString("CENTERLNG","");
+        }
+
+
+
+
+
 
 
 
@@ -608,6 +653,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                     directionC = false;
                 }
                 editor.putInt("DIRECTIONC", checkedId);
+                editor.putInt(missionCodeApp+"DIRECTIONC", checkedId);
                 editor.apply();
             }
         });
@@ -624,6 +670,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                     mSpeed = 10.0f;
                 }
                 editor.putInt("MSPEED", checkedId);
+                editor.putInt(missionCodeApp+"MSPEED", checkedId);
                 editor.apply();
             }
 
@@ -644,6 +691,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                     mFinishedAction = WaypointMissionFinishedAction.GO_FIRST_WAYPOINT;
                 }
                 editor.putInt("FINISHACTION", checkedId);
+                editor.putInt(missionCodeApp+"FINISHACTION", checkedId);
                 editor.apply();
             }
         });
@@ -664,6 +712,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                     mHeadingMode = WaypointMissionHeadingMode.USING_WAYPOINT_HEADING;
                 }
                 editor.putInt("HEADING", checkedId);
+                editor.putInt(missionCodeApp+"HEADING", checkedId);
                 editor.apply();
             }
         });
@@ -697,6 +746,13 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                         editor.putString("CENTERLNG", ""+centerLng );
                         editor.putInt("RADIUS", radius );
                         editor.putInt("WAYPOINTCOUNT", waypointCount);
+
+                        editor.putFloat(missionCodeApp+"ALTITUDE", altitude);
+                        editor.putString(missionCodeApp+"CENTERLAT", ""+centerLat );
+                        editor.putString(missionCodeApp+"CENTERLNG", ""+centerLng );
+                        editor.putInt(missionCodeApp+"RADIUS", radius );
+                        editor.putInt(missionCodeApp+"WAYPOINTCOUNT", waypointCount);
+                        editor.putString(missionCodeApp+"TYPE", "Circulo");
 
 
                         editor.apply();
@@ -734,18 +790,48 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
 
         centerLat = droneLocationLat;
         centerLng = droneLocationLng;
-        int directionid = sharedPreferences.getInt("DIRECTIONC",0);
-        int speedid = sharedPreferences.getInt("MSPEED",0);
-        int finishid = sharedPreferences.getInt("FINISHACTION",0);
-        int headingid = sharedPreferences.getInt("HEADING",0);
-        int altitudeCache = (int) sharedPreferences.getFloat("ALTITUDE",0);
-        String widthCache = sharedPreferences.getString("WIDTH","");
-        String heightCache = sharedPreferences.getString("HEIGHT","");
-        String rotangleCache = sharedPreferences.getString("ROTANGLE","");
-        String latCache = sharedPreferences.getString("CENTERLAT","");
-        String lngCache = sharedPreferences.getString("CENTERLNG","");
 
+        int directionid = 0;
+        int speedid = 0;
+        int finishid = 0;
+        int headingid = 0;
+        int radioCache= 0;
+        int waypointcountCache= 0;
+        int altitudeCache = 0;
+        String latCache = "";
+        String lngCache = "";
+        String widthCache = "";
+        String heightCache = "";
+        String rotangleCache = "";
 
+        if(missionCodeApp!=null&&missionCodeApp.toCharArray().length>0){
+            System.out.println("Entroo");
+            directionid = sharedPreferences.getInt(missionCodeApp+"DIRECTIONC",0);
+            speedid = sharedPreferences.getInt(missionCodeApp+"MSPEED",0);
+            finishid = sharedPreferences.getInt(missionCodeApp+"FINISHACTION",0);
+            headingid = sharedPreferences.getInt(missionCodeApp+"HEADING",0);
+
+            waypointcountCache= sharedPreferences.getInt(missionCodeApp+"WAYPOINTCOUNT",0);
+            altitudeCache = (int) sharedPreferences.getFloat(missionCodeApp+"ALTITUDE",0);
+            latCache = sharedPreferences.getString(missionCodeApp+"CENTERLAT","");
+            lngCache = sharedPreferences.getString(missionCodeApp+"CENTERLNG","");
+            widthCache = sharedPreferences.getString("WIDTH","");
+            heightCache = sharedPreferences.getString("HEIGHT","");
+            rotangleCache = sharedPreferences.getString("ROTANGLE","");
+
+        }else{
+            directionid = sharedPreferences.getInt("DIRECTIONC",0);
+            speedid = sharedPreferences.getInt("MSPEED",0);
+            finishid = sharedPreferences.getInt("FINISHACTION",0);
+            headingid = sharedPreferences.getInt("HEADING",0);
+            altitudeCache = (int) sharedPreferences.getFloat("ALTITUDE",0);
+            widthCache = sharedPreferences.getString("WIDTH","");
+            heightCache = sharedPreferences.getString("HEIGHT","");
+            rotangleCache = sharedPreferences.getString("ROTANGLE","");
+            latCache = sharedPreferences.getString("CENTERLAT","");
+            lngCache = sharedPreferences.getString("CENTERLNG","");
+
+        }
 
         ScrollView wayPointSettings = (ScrollView) getLayoutInflater().inflate(R.layout.dialog_waypoint4setting, null);
 
@@ -807,6 +893,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                     directionC = false;
                 }
                 editor.putInt("DIRECTIONC", checkedId);
+                editor.putInt(missionCodeApp+"DIRECTIONC",checkedId);
                 editor.apply();
             }
         });
@@ -823,6 +910,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                     mSpeed = 10.0f;
                 }
                 editor.putInt("MSPEED", checkedId);
+                editor.putInt(missionCodeApp+"MSPEED",checkedId);
                 editor.apply();
             }
 
@@ -843,6 +931,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                     mFinishedAction = WaypointMissionFinishedAction.GO_FIRST_WAYPOINT;
                 }
                 editor.putInt("FINISHACTION", checkedId);
+                editor.putInt(missionCodeApp+"FINISHACTION",checkedId);
                 editor.apply();
             }
         });
@@ -863,6 +952,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                     mHeadingMode = WaypointMissionHeadingMode.USING_WAYPOINT_HEADING;
                 }
                 editor.putInt("HEADING", checkedId);
+                editor.putInt(missionCodeApp+"HEADING",checkedId);
                 editor.apply();
             }
         });
@@ -901,6 +991,16 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                         editor.putString("HEIGHT", ""+height );
                         editor.putString("WIDTH", ""+width );
                         editor.putString("ROTANGLE", ""+rotAngle );
+
+                        editor.putFloat(missionCodeApp+"ALTITUDE", altitude);
+                        editor.putString(missionCodeApp+"CENTERLAT", ""+centerLat );
+                        editor.putString(missionCodeApp+"CENTERLNG", ""+centerLng );
+                        editor.putString(missionCodeApp+"HEIGHT", ""+height );
+                        editor.putString(missionCodeApp+"WIDTH", ""+width );
+                        editor.putString(missionCodeApp+"ROTANGLE", ""+rotAngle );
+                        editor.putString(missionCodeApp+"TYPE", "Rectangulo");
+
+
 
 
 
@@ -965,7 +1065,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
 
         // Limpiar la lista de waypoints anterior
         waypointList.clear();
-        type="Poligono";
+        type="Circulo";
 
 
         // Generar waypoints para el círculo
@@ -1048,7 +1148,6 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
 
         // Generar waypoints para el círculo
         List<Waypoint> waypoints = generateWaypointsForRectangle(centerLat, centerLng, width, height, rotAngle);
-
 
 
         // Iterar sobre los waypoints generados
@@ -1148,7 +1247,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                             for(int i=0; i<waypointList.size();i++){
                                 lista.add(waypointList.get(i).coordinate);
                             }
-                            if(type.equals("Poligono")){
+                            if(type.equals("Circulo")){
                                 json.put("radius", radius);
                             }
                             if(type.equals("Rectangulo")){
@@ -1156,9 +1255,11 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
                                 json.put("height", height);
                                 json.put("angle", rotAngle);
                             }
-
+                            json.put("missionCode",missionCodeApp);
 
                             json.put("waypointsList", lista);
+
+                            json.put("coordinates", directionC);
 
                         } catch (JSONException e) {
                             throw new RuntimeException(e);
@@ -1188,6 +1289,54 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
     }
 
 
+    private void showMissionListDialog(List<Mission> missions) {
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
+        LayoutInflater inflater = this.getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.mission_list, null);
+        dialogBuilder.setView(dialogView);
+
+        // Aquí puedes agregar una lista o un RecyclerView para mostrar todas las misiones
+        LinearLayout missionLayout = dialogView.findViewById(R.id.missionLayout);
+
+        for (Mission mission : missions) {
+            View missionItemView = inflater.inflate(R.layout.mission_item, null);
+            TextView textViewIdVuelo = missionItemView.findViewById(R.id.textViewIdVuelo);
+            TextView textViewTipo = missionItemView.findViewById(R.id.textViewTipo);
+            TextView textViewMissionCode = missionItemView.findViewById(R.id.textViewMissionCode);
+
+            textViewIdVuelo.setText("ID Vuelo: " + mission.getIdVuelo());
+            textViewTipo.setText("Tipo: " + mission.getTipo());
+            textViewMissionCode.setText("Mission Code: " + mission.getMissionCode());
+
+            missionItemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // Obtener el valor del "missionCode" del objeto seleccionado
+                    Mission selectedMission = missions.get(missionLayout.indexOfChild(v));
+                    missionCodeApp = selectedMission.getMissionCode();
+                    System.out.println("HOla Mission.............. "+missionCodeApp);
+
+                    // Cerrar el diálogo cuando el usuario selecciona una misión
+
+                }
+            });
+
+            missionLayout.addView(missionItemView);
+        }
+
+        AlertDialog alertDialog = dialogBuilder.create();
+        alertDialog.show();
+    }
+
+
+
+
+
+
+
+
+
+
     public void hacerUpdate(){
         JSONObject json = new JSONObject();
         started = false;
@@ -1198,7 +1347,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
             String formattedDate = dateFormat.format(new Date());
             json.put("finishdate", formattedDate);
-            json.put("coordinates", waypointsDrone);
+            //json.put("coordinates", waypointsDrone);
 
         } catch (JSONException e) {
             throw new RuntimeException(e);
@@ -1217,6 +1366,23 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
         }
 
     }
+
+    public void hacerGet() {
+        try {
+            List<Mission> missions = new CreateRouteActivityAutomatic.GetRequestAsyncTask().execute(new JSONObject()).get();
+            if (!missions.isEmpty()) {
+                // Aquí mostramos el diálogo solo si hay misiones disponibles
+                showMissionListDialog(missions);
+                setResultToToast("Datos traídos exitosamente.");
+            } else {
+                setResultToToast("No se encontraron misiones.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            setResultToToast("No se trajeron los datos.");
+        }
+    }
+
 
 
     private class PostRequestAsyncTask extends AsyncTask<JSONObject, Void, Integer> {
@@ -1262,6 +1428,7 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
 
                     // Acceder a los valores del objeto JSON
                     Integer id = json1.getInt("id");
+                    String MissionCode =json1.getString("missionCode");
 
 
                     sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
@@ -1350,6 +1517,64 @@ public class CreateRouteActivityAutomatic extends FragmentActivity implements Vi
             }
         }
     }
+
+    private class GetRequestAsyncTask extends AsyncTask<JSONObject, Void, List<Mission>> {
+        @Override
+        protected List<Mission> doInBackground(JSONObject... jsonObjects) {
+            List<Mission> missions = new ArrayList<>();
+            try {
+                System.out.println("Entroooooooo");
+                // Recuperar el valor almacenado en caché desde SharedPreferences
+                SharedPreferences sharedPreferences = getSharedPreferences("Cache", Context.MODE_PRIVATE);
+                int cachedValueid = sharedPreferences.getInt("IDUSER",0);
+
+                URL url = new URL("http://3.208.19.176:80/api/usuario/"+cachedValueid+"/vuelo");
+
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setRequestProperty("Content-Type", "application/json");
+                connection.setConnectTimeout(5000); // Tiempo máximo de conexión en milisegundos
+                connection.setReadTimeout(5000);
+
+                if(connection.getResponseCode()==200) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    String line;
+                    StringBuilder response = new StringBuilder();
+
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    reader.close();
+
+
+                    JSONArray json1 = new JSONArray(response.toString());
+
+                    for (int i = 0; i < json1.length(); i++) {
+                        String idVuelo = json1.getJSONObject(i).getString("id");
+                        String tipo = json1.getJSONObject(i).getString("type");
+                        String missionCode = json1.getJSONObject(i).getString("missionCode");
+
+                        Mission mission = new Mission(idVuelo, tipo, missionCode);
+                        missions.add(mission);
+                    }
+                }
+
+
+
+
+
+
+
+                return missions;
+            } catch (Exception e) {
+                System.out.println("El hijueputa error es este: "+e);
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+    }
+
 
 
 

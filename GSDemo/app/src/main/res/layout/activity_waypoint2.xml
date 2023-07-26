@@ -46,6 +46,12 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Clear" />
+        <Button
+            android:id="@+id/load"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Load"
+            android:layout_weight="0.9"/>
     </LinearLayout>
 
     <LinearLayout
